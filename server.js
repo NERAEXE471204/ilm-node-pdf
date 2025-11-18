@@ -13,24 +13,21 @@ app.post("/generate-pdf", async (req, res) => {
   try {
     const { html, fileName } = req.body;
 
-    console.log("🔥 HTML length:", html?.length);
+    console.log("🔥 HTML length:", html?.length || 0);
 
+    // ---- запуск встроенного Chromium ----
     const browser = await puppeteer.launch({
-      headless: "new",
+      headless: true,
       args: [
         "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-gpu",
-        "--disable-dev-shm-usage",
-        "--single-process",
-        "--no-zygote"
+        "--disable-setuid-sandbox"
       ]
     });
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const pdf = await page.pdf({
+    const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true
     });
@@ -38,11 +35,13 @@ app.post("/generate-pdf", async (req, res) => {
     await browser.close();
 
     res.setHeader("Content-Type", "application/pdf");
-    res.send(pdf);
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName || "resume.pdf"}"`);
+
+    return res.send(pdfBuffer);
 
   } catch (err) {
     console.error("❌ PDF generation error:", err);
-    res.status(500).send("PDF generation error");
+    res.status(500).json({ error: "PDF generation error" });
   }
 });
 
