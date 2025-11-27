@@ -7,7 +7,7 @@ const app = express();
 app.use(bodyParser.json({ limit: "10mb" }));
 
 app.get("/", (req, res) => {
-  res.send("🚀 Ilmhona PDF server running (fast chrome)");
+  res.send("🚀 Ilmhona PDF server running on fast chromium");
 });
 
 app.post("/generate-pdf", async (req, res) => {
@@ -20,11 +20,10 @@ app.post("/generate-pdf", async (req, res) => {
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+      headless: chromium.headless
     });
 
     const page = await browser.newPage();
-
     await page.setContent(html, { waitUntil: "networkidle0" });
 
     const pdf = await page.pdf({
@@ -43,11 +42,11 @@ app.post("/generate-pdf", async (req, res) => {
 
   } catch (err) {
     console.error("❌ PDF generation error:", err);
-    res.status(500).send("Error generating PDF");
+    res.status(500).send("PDF generation failed");
   }
 });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () =>
-  console.log(`🚀 Ilmhona PDF server running on port ${PORT}`)
+  console.log(`🚀 PDF server running on port ${PORT}`)
 );
