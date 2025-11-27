@@ -3,11 +3,14 @@ import bodyParser from "body-parser";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 
+chromium.setHeadlessMode = true;
+chromium.setGraphicsMode = false;
+
 const app = express();
-app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.json({ limit: "20mb" }));
 
 app.get("/", (req, res) => {
-  res.send("🚀 Ilmhona PDF server running on fast chromium");
+  res.send("🚀 Fast Ilmhona PDF server working");
 });
 
 app.post("/generate-pdf", async (req, res) => {
@@ -16,19 +19,23 @@ app.post("/generate-pdf", async (req, res) => {
 
     if (!html) return res.status(400).send("❌ No HTML received");
 
+    const executablePath = await chromium.executablePath();
+
+    console.log("Chromium path →", executablePath);
+
     const browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: chromium.headless
     });
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const pdf = await page.pdf({
+    const pdfBuffer = await page.pdf({
       format: "A4",
-      printBackground: true
+      printBackground: true,
     });
 
     await browser.close();
@@ -38,15 +45,13 @@ app.post("/generate-pdf", async (req, res) => {
       "Content-Disposition": `attachment; filename="${fileName || "resume"}.pdf"`,
     });
 
-    res.send(pdf);
+    return res.send(pdfBuffer);
 
-  } catch (err) {
-    console.error("❌ PDF generation error:", err);
-    res.status(500).send("PDF generation failed");
+  } catch (error) {
+    console.error("❌ PDF generation error:", error);
+    return res.status(500).send("PDF generation failed");
   }
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () =>
-  console.log(`🚀 PDF server running on port ${PORT}`)
-);
+app.listen(PORT, () => console.log(`🚀 Running on port ${PORT}`));
